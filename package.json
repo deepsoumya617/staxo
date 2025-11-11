@@ -1,5 +1,5 @@
 {
-  "name": "uploadx-backend",
+  "name": "staxo-backend",
   "version": "1.0.0",
   "description": "",
   "main": "dist/server.js",
@@ -7,18 +7,26 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "studio": "drizzle-kit studio",
+    "push": "drizzle-kit push"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
-  "packageManager": "pnpm@10.18.3",
   "dependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/jsonwebtoken": "^9.0.10",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.7",
     "express": "^5.1.0",
+    "google-auth-library": "^10.5.0",
     "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.3",
     "zod": "^4.1.12"
   },

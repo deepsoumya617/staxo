@@ -6,7 +6,7 @@ import app from 'app'
 ;(async () => {
   // connect db -> later
   await connectDB()
-  app.listen(env.PORT, () => {
-    console.log(`Server is running on port http://localhost:${env.PORT}`)
+  app.listen(Number(env.PORT), () => {
+    console.log(`Server is running on port http://localhost:${env.PORT}/api`)
   })
 })()

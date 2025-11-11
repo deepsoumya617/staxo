@@ -1,17 +1,26 @@
 import { errorHandler } from '@middleware/errorHandler'
 import { requestMiddleware } from '@middleware/requestLogger'
+import authRoutes from '@modules/auth/auth.routes'
+import cookieParser from 'cookie-parser'
 import express, { Express } from 'express'
 
 const app: Express = express()
 
 // builtin middlewares
 app.use(express.json())
+app.use(cookieParser())
 
 // request logger
 app.use(requestMiddleware)
 
-// routes....
+// health / info route
+app.get('/api', (req, res) => {
+  return res.status(200).json({ message: 'server is running' })
+})
 
+app.use('/api/auth', authRoutes)
+
+// global error handler
 app.use(errorHandler)
 
 export default app

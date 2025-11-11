@@ -1,19 +1,19 @@
 services:
   postgres:
     image: postgres:latest
-    container_name: uploadx_postgres
+    container_name: staxo_postgres
     restart: always
     environment:
       # feel free to change these values
       POSTGRES_USER: deep
       POSTGRES_PASSWORD: notsosecure
-      POSTGRES_DB: uploadx_db
+      POSTGRES_DB: staxo_db
     ports:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -d uploadx_db -U deep']
+      test: ['CMD-SHELL', 'pg_isready -d staxo_db -U deep']
       interval: 10s
       timeout: 5s
       retries: 5
