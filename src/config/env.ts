@@ -11,6 +11,10 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string(),
   APP_URL: z.string(),
   JWT_SECRET_KEY: z.string(),
+  AWS_REGION: z.string().default('ap-south-1'),
+  AWS_S3_BUCKET: z.string(),
+  AWS_ACCESS_KEY: z.string(),
+  AWS_SECRET_ACCESS_KEY: z.string(),
 })
 
 // validate
