@@ -1,9 +1,15 @@
 import { db } from '@config/db'
-import { folders } from '@db/index'
+import { files, folders } from '@db/index'
 import { NotFoundError } from '@errors/NotFoundError'
-import { createFolderType } from '@modules/folders/folder.types'
-import { and, eq } from 'drizzle-orm'
+import {
+  createFolderType,
+  fileType,
+  folderType,
+  listFolderType,
+} from '@modules/folders/folder.types'
+import { and, eq, isNull } from 'drizzle-orm'
 
+// create folder service
 export async function handleCreateFolder({
   name,
   userId,
@@ -34,4 +40,44 @@ export async function handleCreateFolder({
     .returning()
 
   return folder
+}
+
+// list folder service
+export async function handleListFolder({ userId, folderId }: listFolderType) {
+  // list the subfolders first
+  // subfolders' parentId = current folderId
+  // if current folderid is null => parentId is null, [root]
+
+  // fetch the subfolders in root level
+  let subfolders: folderType[]
+
+  if (folderId === null) {
+    subfolders = await db
+      .select()
+      .from(folders)
+      .where(and(eq(folders.userId, userId), isNull(folders.parentId)))
+  } else {
+    // inside other folders
+    subfolders = await db
+      .select()
+      .from(folders)
+      .where(and(eq(folders.userId, userId), eq(folders.parentId, folderId)))
+  }
+
+  // fetch the files
+  let folderFiles: fileType[]
+
+  if (folderId === null) {
+    folderFiles = await db
+      .select()
+      .from(files)
+      .where(and(eq(files.userId, userId), isNull(files.folderId)))
+  } else {
+    folderFiles = await db
+      .select()
+      .from(files)
+      .where(and(eq(files.userId, userId), eq(files.folderId, folderId)))
+  }
+
+  return { folders: subfolders, files: folderFiles }
 }
