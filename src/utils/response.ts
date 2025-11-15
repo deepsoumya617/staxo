@@ -4,7 +4,8 @@ import { Response } from 'express'
 export function successResponse(
   res: Response,
   data: any,
-  message = 'success',
+  success: boolean,
+  message?: string,
   statusCode = 200
 ) {
   return res.status(statusCode).json({

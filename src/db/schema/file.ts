@@ -31,7 +31,6 @@ export const files = pgTable(
     size: integer('size').default(0).notNull(),
     mimeType: varchar('mime_type', { length: 255 }),
     storageKey: text('storage_key').notNull(),
-    checksum: varchar('checksum', { length: 128 }),
     status: fileStatusEnums('status').default('PENDING').notNull(),
     expiresAt: timestamp('expires_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),

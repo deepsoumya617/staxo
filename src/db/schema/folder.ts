@@ -18,7 +18,6 @@ export const folders = pgTable(
       .notNull()
       .references(() => users.id),
     parentId: uuid('parent_id'),
-    path: text('path'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },

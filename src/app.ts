@@ -1,6 +1,7 @@
 import { errorHandler } from '@middleware/errorHandler'
 import { requestMiddleware } from '@middleware/requestLogger'
 import authRoutes from '@modules/auth/auth.routes'
+import folderRoutes from '@modules/folders/folder.routes'
 import cookieParser from 'cookie-parser'
 import express, { Express } from 'express'
 
@@ -19,6 +20,7 @@ app.get('/api', (req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
+app.use('/api/folders', folderRoutes)
 
 // global error handler
 app.use(errorHandler)
