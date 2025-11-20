@@ -8,14 +8,19 @@ import { and, eq } from 'drizzle-orm'
 import { NotFoundError } from '@errors/NotFoundError'
 import { ForbiddenError } from '@errors/ForbiddenError'
 import { generateStorageKey } from '@utils/generateStorageKey'
-import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import {
+  CreateMultipartUploadCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3'
 import { env } from '@config/env'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { s3 } from '@config/s3'
 import { BadRequestError } from '@errors/BadRequestError'
 
+// single presigned url
 // create upload url and return to the controller
-export async function handleCreateUploadUrl({
+export async function handleCreateSingleUploadUrl({
   name,
   size,
   mimeType,
@@ -60,10 +65,14 @@ export async function handleCreateUploadUrl({
     .returning()
 
   const fileId = file.id
-  const fileName = name
 
   // generate the storage key
-  const storageKey = generateStorageKey({ userId, fileId, fileName, folderId })
+  const storageKey = generateStorageKey({
+    userId,
+    fileId,
+    fileName: name,
+    folderId,
+  })
 
   // update the storagekey
   await db.update(files).set({ storageKey }).where(eq(files.id, file.id))
@@ -85,7 +94,7 @@ export async function handleCreateUploadUrl({
 // now confirm the S3 obj exists in bucket and matches expected size
 // if so, then => 'COMPLETED' and update user.totalStorageUsed
 // else, 'FAILED' and throw error
-export async function handleConfirmFileUpload({
+export async function handleConfirmSingleFileUpload({
   userId,
   fileId,
   size,
@@ -145,4 +154,87 @@ export async function handleConfirmFileUpload({
     .update(users)
     .set({ totalStorageUsed: newTotal })
     .where(eq(users.id, userId))
+}
+
+// multi-part upload
+export async function handleInitiateMultipartUpload({
+  name,
+  size,
+  mimeType,
+  folderId,
+  userId,
+}: createUploadUrlType) {
+  // check folder ownership if not null
+  if (folderId !== null) {
+    const [folder] = await db
+      .select()
+      .from(folders)
+      .where(and(eq(folders.id, folderId), eq(folders.userId, userId)))
+
+    if (!folder) {
+      throw new NotFoundError('Folder not found!')
+    }
+  }
+
+  // check user storage quota
+  const [user] = await db.select().from(users).where(eq(users.id, userId))
+
+  if (!user) {
+    throw new NotFoundError('User not found.')
+  }
+
+  if (user.totalStorageUsed + size > user.storageLimit) {
+    throw new ForbiddenError('Not enough storage.')
+  }
+
+  // add entry in db for files
+  const [file] = await db
+    .insert(files)
+    .values({
+      name,
+      size: 0,
+      mimeType,
+      folderId,
+      userId,
+      storageKey: '',
+      status: 'PENDING',
+    })
+    .returning()
+
+  const fileId = file.id
+
+  // generate the storage key
+  const storageKey = generateStorageKey({
+    userId,
+    fileId,
+    fileName: name,
+    folderId,
+  })
+
+  // update the storagekey
+  await db.update(files).set({ storageKey }).where(eq(files.id, file.id))
+
+  // create multipart upload url
+  const command = await s3.send(
+    new CreateMultipartUploadCommand({
+      Bucket: env.AWS_S3_BUCKET,
+      Key: storageKey,
+      ContentType: mimeType,
+    })
+  )
+
+  if (!command.UploadId) {
+    throw new BadRequestError('Failed to initiate multipart upload.')
+  }
+
+  // save the uploadId in db
+  await db
+    .update(files)
+    .set({ uploadId: command.UploadId })
+    .where(eq(files.id, fileId))
+
+  return {
+    fileId,
+    uploadId: command.UploadId,
+  }
 }

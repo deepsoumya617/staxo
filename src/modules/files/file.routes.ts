@@ -2,8 +2,8 @@ import { asyncHandler } from '@middleware/asyncHandler'
 import { authMiddleware } from '@middleware/authMiddleware'
 import { Router } from 'express'
 import {
-  confirmFileUpload,
-  createUploadUrl,
+  confirmSingleFileUpload,
+  createSingleUploadUrl,
 } from '@modules/files/file.controller'
 
 const fileRouter = Router()
@@ -14,8 +14,8 @@ fileRouter.use(authMiddleware)
 // routes
 
 // single upload
-fileRouter.post('/upload-url', asyncHandler(createUploadUrl))
-fileRouter.post('/confirm-upload', asyncHandler(confirmFileUpload))
+fileRouter.post('/upload-url', asyncHandler(createSingleUploadUrl))
+fileRouter.post('/confirm-upload', asyncHandler(confirmSingleFileUpload))
 
 // multi-part upload
 

@@ -6,13 +6,14 @@ import {
 } from '@modules/files/file.schema'
 import { ValidationError } from '@errors/ValidationError'
 import {
-  handleConfirmFileUpload,
-  handleCreateUploadUrl,
+  handleConfirmSingleFileUpload,
+  handleCreateSingleUploadUrl,
+  handleInitiateMultipartUpload,
 } from '@modules/files/file.service'
 import { successResponse } from '@utils/response'
 
 // generate upload url
-export async function createUploadUrl(req: AuthRequest, res: Response) {
+export async function createSingleUploadUrl(req: AuthRequest, res: Response) {
   const result = uploadUrlSchema.safeParse(req.body)
 
   if (!result.success) {
@@ -23,7 +24,7 @@ export async function createUploadUrl(req: AuthRequest, res: Response) {
   const userId = req.user!.userId
 
   // get the data from the service
-  const data = await handleCreateUploadUrl({
+  const data = await handleCreateSingleUploadUrl({
     name,
     size,
     mimeType,
@@ -41,7 +42,7 @@ export async function createUploadUrl(req: AuthRequest, res: Response) {
 }
 
 // confirm file upload
-export async function confirmFileUpload(req: AuthRequest, res: Response) {
+export async function confirmSingleFileUpload(req: AuthRequest, res: Response) {
   const result = confirmFileUploadSchema.safeParse(req.body)
 
   if (!result.success) {
@@ -52,7 +53,36 @@ export async function confirmFileUpload(req: AuthRequest, res: Response) {
   const userId = req.user!.userId
 
   // pass to service
-  await handleConfirmFileUpload({ userId, fileId, size })
+  await handleConfirmSingleFileUpload({ userId, fileId, size })
 
   return successResponse(res, {}, true, 'Upload confirmed', 200)
+}
+
+// multi-part upload
+// first initiate multi-part upload
+export async function initiateMultipartUpload(req: AuthRequest, res: Response) {
+  const result = uploadUrlSchema.safeParse(req.body)
+
+  if (!result.success) {
+    throw new ValidationError()
+  }
+
+  const { name, size, mimeType, folderId = null } = result.data
+  const userId = req.user!.userId
+
+  const data = await handleInitiateMultipartUpload({
+    name,
+    size,
+    mimeType,
+    folderId,
+    userId,
+  })
+
+  return successResponse(
+    res,
+    { ...data },
+    true,
+    'Multipart upload initiated.',
+    200
+  )
 }
