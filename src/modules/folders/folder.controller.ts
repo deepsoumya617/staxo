@@ -29,7 +29,7 @@ export async function createFolder(req: AuthRequest, res: Response) {
   // send inputs to handleCreateFolder
   const folder = await handleCreateFolder({ name, userId, parentId })
 
-  return successResponse(res, folder, true, 'Folder created successfully!', 201)
+  return successResponse(res, folder, 'Folder created successfully!', 201)
 }
 
 // list folders and files inside it
@@ -49,12 +49,10 @@ export async function listFolder(req: AuthRequest, res: Response) {
   return successResponse(
     res,
     { files, folders },
-    true,
     'Folders and files fetched successfully!',
     200
   )
 }
-
 
 // rename folder
 export async function renameFolder(req: AuthRequest, res: Response) {
@@ -76,5 +74,5 @@ export async function renameFolder(req: AuthRequest, res: Response) {
   // rename the folder
   await handleRenameFolder({ userId, folderId, newName })
 
-  return successResponse(res, {}, true, 'Folder renamed successfully', 200)
+  return successResponse(res, {}, 'Folder renamed successfully', 200)
 }

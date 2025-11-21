@@ -2,19 +2,21 @@ import { AuthRequest } from '@middleware/authMiddleware'
 import { Response } from 'express'
 import {
   confirmFileUploadSchema,
-  uploadUrlSchema,
+  getUploadUrlSchema,
+  multipartPartUrlSchema,
 } from '@modules/files/file.schema'
 import { ValidationError } from '@errors/ValidationError'
 import {
   handleConfirmSingleFileUpload,
   handleCreateSingleUploadUrl,
+  handleGetMultipartPartUrl,
   handleInitiateMultipartUpload,
 } from '@modules/files/file.service'
 import { successResponse } from '@utils/response'
 
 // generate upload url
 export async function createSingleUploadUrl(req: AuthRequest, res: Response) {
-  const result = uploadUrlSchema.safeParse(req.body)
+  const result = getUploadUrlSchema.safeParse(req.body)
 
   if (!result.success) {
     throw new ValidationError()
@@ -35,7 +37,6 @@ export async function createSingleUploadUrl(req: AuthRequest, res: Response) {
   return successResponse(
     res,
     { ...data },
-    true,
     'Upload url created succesfully!',
     200
   )
@@ -55,13 +56,13 @@ export async function confirmSingleFileUpload(req: AuthRequest, res: Response) {
   // pass to service
   await handleConfirmSingleFileUpload({ userId, fileId, size })
 
-  return successResponse(res, {}, true, 'Upload confirmed', 200)
+  return successResponse(res, {}, 'Upload confirmed', 200)
 }
 
 // multi-part upload
 // first initiate multi-part upload
 export async function initiateMultipartUpload(req: AuthRequest, res: Response) {
-  const result = uploadUrlSchema.safeParse(req.body)
+  const result = getUploadUrlSchema.safeParse(req.body)
 
   if (!result.success) {
     throw new ValidationError()
@@ -78,11 +79,27 @@ export async function initiateMultipartUpload(req: AuthRequest, res: Response) {
     userId,
   })
 
-  return successResponse(
-    res,
-    { ...data },
-    true,
-    'Multipart upload initiated.',
-    200
-  )
+  return successResponse(res, { ...data }, 'Multipart upload initiated.', 200)
+}
+
+// get signed url for each part
+export async function getMultipartPartUrl(req: AuthRequest, res: Response) {
+  const result = multipartPartUrlSchema.safeParse(req.body)
+
+  if (!result.success) {
+    throw new ValidationError()
+  }
+
+  const { fileId, uploadId, partNumber } = result.data
+  const userId = req.user!.userId
+
+  // offload to service
+  const data = await handleGetMultipartPartUrl({
+    fileId,
+    partNumber,
+    uploadId,
+    userId,
+  })
+
+  return successResponse(res, { ...data }, 'Part url created', 200)
 }

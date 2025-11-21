@@ -4,7 +4,6 @@ import { Response } from 'express'
 export function successResponse(
   res: Response,
   data: any,
-  success: boolean,
   message?: string,
   statusCode = 200
 ) {

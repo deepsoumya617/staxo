@@ -1,8 +1,4 @@
 import { db } from '@config/db'
-import {
-  confirmFileUploadType,
-  createUploadUrlType,
-} from '@modules/files/file.types'
 import { files, folders, users } from '@db/index'
 import { and, eq } from 'drizzle-orm'
 import { NotFoundError } from '@errors/NotFoundError'
@@ -12,11 +8,13 @@ import {
   CreateMultipartUploadCommand,
   HeadObjectCommand,
   PutObjectCommand,
+  UploadPartCommand,
 } from '@aws-sdk/client-s3'
 import { env } from '@config/env'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { s3 } from '@config/s3'
 import { BadRequestError } from '@errors/BadRequestError'
+import { ConfirmFileUploadType, GetUploadUrlType, MultipartPartUrlType } from '@modules/files/file.schema'
 
 // single presigned url
 // create upload url and return to the controller
@@ -26,9 +24,10 @@ export async function handleCreateSingleUploadUrl({
   mimeType,
   folderId,
   userId,
-}: createUploadUrlType) {
+}: GetUploadUrlType) {
   // so, if the folderId is not null, we have to check the ownership
-  if (folderId !== null) {
+  // Change the null-checks from "!== null" to "!= null" so TypeScript narrows folderId to string (excluding null and undefined) before passing it to eq.
+  if (folderId != null) {
     const [folder] = await db
       .select()
       .from(folders)
@@ -98,7 +97,7 @@ export async function handleConfirmSingleFileUpload({
   userId,
   fileId,
   size,
-}: confirmFileUploadType) {
+}: ConfirmFileUploadType) {
   // check if file exists
   const [file] = await db
     .select()
@@ -163,9 +162,9 @@ export async function handleInitiateMultipartUpload({
   mimeType,
   folderId,
   userId,
-}: createUploadUrlType) {
+}: GetUploadUrlType) {
   // check folder ownership if not null
-  if (folderId !== null) {
+  if (folderId != null) {
     const [folder] = await db
       .select()
       .from(folders)
@@ -237,4 +236,44 @@ export async function handleInitiateMultipartUpload({
     fileId,
     uploadId: command.UploadId,
   }
+}
+
+// get part url service
+export async function handleGetMultipartPartUrl({
+  fileId,
+  uploadId,
+  partNumber,
+  userId,
+}: MultipartPartUrlType) {
+  // confirm file exists with fileId and belongs to user w. userId
+  const [file] = await db
+    .select()
+    .from(files)
+    .where(and(eq(files.id, fileId), eq(files.userId, userId)))
+
+  if (!file) {
+    throw new NotFoundError('File not found')
+  }
+
+  // validate uploadId
+  if (!file.uploadId || file.uploadId !== uploadId) {
+    throw new ForbiddenError('Invalid upload session')
+  }
+
+  // check status === 'PENDING'
+  if (file.status !== 'PENDING') {
+    throw new BadRequestError('Upload is not active')
+  }
+
+  // generate presigned part upload URL
+  const command = new UploadPartCommand({
+    Bucket: env.AWS_S3_BUCKET,
+    Key: file.storageKey,
+    UploadId: uploadId,
+    PartNumber: partNumber,
+  })
+
+  const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 900 })
+
+  return { uploadUrl }
 }
